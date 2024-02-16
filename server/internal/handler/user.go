@@ -15,7 +15,7 @@ import (
 
 // Create and add token to cookie
 func createSendToken(c *gin.Context, token models.Token) error {
-	jwt, err := auth.GenerateToken(token.ID, token.Username, token.Avatar)
+	jwt, err := auth.GenerateToken(token.ID)
 	if err != nil {
 		return err
 	}
@@ -139,11 +139,6 @@ func (h *Handler) SetAvatar(c *gin.Context) {
 	}
 
 	if err := h.services.User.SetAvatar(c, file, &user); err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-		return
-	}
-
-	if err := createSendToken(c, user); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}

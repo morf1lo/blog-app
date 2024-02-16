@@ -31,7 +31,7 @@ func (s *UserService) CreateUser(user models.User) (models.Token, error) {
 		return models.Token{}, err
 	}
 
-	return models.Token{ID: id, Username: user.Username, Avatar: "default"}, nil
+	return models.Token{ID: id}, nil
 }
 
 func (s *UserService) Login(user models.User) (models.Token, error) {
@@ -49,7 +49,7 @@ func (s *UserService) Login(user models.User) (models.Token, error) {
 		return models.Token{}, errInvalidCredenials
 	}
 
-	return models.Token{ID: existingUser.ID, Username: existingUser.Username, Avatar: existingUser.Avatar}, nil
+	return models.Token{ID: existingUser.ID}, nil
 }
 
 func (s *UserService) DeleteUser(user models.Token, confirmPassword string) error {
@@ -63,14 +63,31 @@ func (s *UserService) DeleteUser(user models.Token, confirmPassword string) erro
 		return errInvalidPassword
 	}
 
-	if err := deleteUserDataFromDB(s.db, user.ID); err != nil {
+	if err := deleteUserData(s.db, user.ID); err != nil {
 		return errInternalServer
 	}
 
 	return nil
 }
 
-func deleteUserDataFromDB(db *sql.DB, userID int64) error {
+func deleteUserData(db *sql.DB, userID int64) error {
+	// Delete user profile picture
+	path := "public/avatars"
+
+	fileNamePattern := strconv.FormatInt(userID, 10) + ".*"
+
+	files, err := filepath.Glob(filepath.Join(path, fileNamePattern))
+	if err != nil {
+		return err
+	}
+
+	for _, filePath := range files {
+		if err := os.Remove(filePath); err != nil {
+			return err
+		}
+	}
+
+	// Delete user data from Database
 	tx, err := db.Begin()
 	if err != nil {
 		return err
@@ -145,7 +162,6 @@ func (s *UserService) SetAvatar(c *gin.Context, file *multipart.FileHeader, user
 	if err != nil {
 		return err
 	}
-	user.Avatar = avatar
 	return nil
 }
 

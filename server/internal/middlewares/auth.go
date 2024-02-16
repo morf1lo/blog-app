@@ -36,8 +36,6 @@ func AuthMiddleware() gin.HandlerFunc {
 
 		token := models.Token{
 			ID: int64(claims["id"].(float64)),
-			Username: claims["username"].(string),
-			Avatar: claims["avatar"].(string),
 		}
 
 		c.Set("token", token)
