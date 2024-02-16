@@ -7,8 +7,8 @@ import (
 
 	"github.com/morf1lo/blog-app/internal/config"
 	"github.com/morf1lo/blog-app/internal/db"
-	"github.com/morf1lo/blog-app/internal/routes"
-	"github.com/morf1lo/blog-app/internal/services"
+	"github.com/morf1lo/blog-app/internal/handler"
+	"github.com/morf1lo/blog-app/internal/service"
 )
 
 func Run() {
@@ -20,19 +20,16 @@ func Run() {
 	}
 	defer db.Close()
 
-	router := gin.New()
+	services := service.NewService(db)
+	handler := handler.NewHandler(services)
 
-	userService := services.NewUserService(db)
-	postService := services.NewPostService(db)
-	commentService := services.NewCommentService(db)
+	router := gin.New()
 
 	router.Static("/public", "./public")
 
 	router.SetTrustedProxies(nil)
 
-	routes.SetupUserRoutes(router, *userService)
-	routes.SetupPostRoutes(router, *postService)
-	routes.SetupCommentRoutes(router, *commentService)
+	handler.SetupRoutes(router)
 
 	router.Run(":8080")
 }
