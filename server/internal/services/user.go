@@ -119,7 +119,7 @@ func (s *UserService) GetUserByUsername(username string) (interface{}, error) {
 func (s *UserService) SetAvatar(c *gin.Context, file *multipart.FileHeader, user *models.Token) error {
 	uploadPath := "public/avatars"
 
-	recentFileNamePattern := strconv.FormatInt(int64(user.ID), 10) + ".*"
+	recentFileNamePattern := strconv.FormatInt(user.ID, 10) + ".*"
 
 	recentFiles, err := filepath.Glob(filepath.Join(uploadPath, recentFileNamePattern))
 	if err != nil {
