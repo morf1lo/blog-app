@@ -101,11 +101,11 @@ func deleteUserDataFromDB(db *sql.DB, userID int64) error {
 
 func (s *UserService) GetUserByUsername(username string) (interface{}, error) {
 	var user struct {
-		ID				uint64	`json:"id"`
-		Username	string	`json:"username"`
-		Email			string	`json:"email"`
-		Avatar		string	`json:"avatar"`
-		CreatedAt	string	`json:"created_at"`
+		ID				uint64 `json:"id"`
+		Username	string `json:"username"`
+		Email			string `json:"email"`
+		Avatar		string `json:"avatar"`
+		CreatedAt	string `json:"created_at"`
 	}
 
 	err := s.db.QueryRow("SELECT id, username, email, avatar, created_at FROM users WHERE username = ?", username).Scan(&user.ID, &user.Username, &user.Email, &user.Avatar, &user.CreatedAt)
