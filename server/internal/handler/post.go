@@ -156,3 +156,15 @@ func (h *Handler) deletePost(c *gin.Context) {
 
 	c.JSON(http.StatusOK, gin.H{"success": true})
 }
+
+func (h *Handler) getUserLikes(c *gin.Context) {
+	user := utils.GetUser(c)
+
+	likes, err := h.services.Post.GetUserLikes(user)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"success": true, "data": likes})
+}

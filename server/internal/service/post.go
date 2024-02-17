@@ -143,3 +143,32 @@ func deletePostDataFromDB(db *sql.DB, postID int64, userID int64) error {
 
 	return tx.Commit()
 }
+
+func (s *PostService) GetUserLikes(user models.Token) ([]models.Post, error) {
+	var postIDs []int64
+	rows, err := s.db.Query("SELECT post FROM likes WHERE user = ?", user.ID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	for rows.Next() {
+		var postID int64
+		if err := rows.Scan(&postID); err != nil {
+			return nil, err
+		}
+		postIDs = append(postIDs, postID)
+	}
+
+	var posts []models.Post
+	for _, postID := range postIDs {
+		var post models.Post
+		err := s.db.QueryRow("SELECT id, author, title, likes FROM posts WHERE id = ?", postID).Scan(&post.ID, &post.Author, &post.Title, &post.Likes)
+		if err != nil {
+			return nil, err
+		}
+		posts = append(posts, post)
+	}
+
+	return posts, nil
+}

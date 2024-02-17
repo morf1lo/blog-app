@@ -10,11 +10,13 @@ import (
 
 type User interface {
 	CreateUser(user models.User) (models.Token, error)
-	Login(user models.User) (models.Token, error)
+	SignIn(user models.User) (models.Token, error)
 	DeleteUser(user models.Token, confirmPassword string) error
 	GetUserByUsername(username string) (interface{}, error)
 	SetAvatar(c *gin.Context, file *multipart.FileHeader, user *models.Token) error
 	Follow(user models.Token, following uint64) error
+	GetUserFollowers(user models.Token) ([]models.User, error)
+	GetUserFollows(user models.Token) ([]models.User, error)
 }
 
 type Post interface {
@@ -23,6 +25,7 @@ type Post interface {
 	UpdatePost(updateQuery string, values []interface{}) error
 	LikePost(postID int64, userID int64) error
 	DeletePost(postID int64, userID int64) error
+	GetUserLikes(user models.Token) ([]models.Post, error)
 }
 
 type Comment interface {

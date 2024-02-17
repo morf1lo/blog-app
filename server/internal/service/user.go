@@ -34,7 +34,7 @@ func (s *UserService) CreateUser(user models.User) (models.Token, error) {
 	return models.Token{ID: id}, nil
 }
 
-func (s *UserService) Login(user models.User) (models.Token, error) {
+func (s *UserService) SignIn(user models.User) (models.Token, error) {
 	var existingUser models.User
 	err := s.db.QueryRow("SELECT id, username, password, avatar FROM users WHERE username = ? OR email = ?", user.Username, user.Email).Scan(&existingUser.ID, &existingUser.Username, &existingUser.Password, &existingUser.Avatar)
 	switch {
@@ -195,4 +195,62 @@ func (s *UserService) Follow(user models.Token, following uint64) error {
 	}
 
 	return nil
+}
+
+func (s *UserService) GetUserFollowers(user models.Token) ([]models.User, error) {
+	var followerIDs []int64
+	rows, err := s.db.Query("SELECT user FROM followers WHERE following = ?", user.ID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	for rows.Next() {
+		var followerID int64
+		if err := rows.Scan(&followerID); err != nil {
+			return nil, err
+		}
+		followerIDs = append(followerIDs, followerID)
+	}
+
+	var followers []models.User
+	for _, followingID := range followerIDs {
+		var follower models.User
+		err := s.db.QueryRow("SELECT id, username, avatar FROM users WHERE id = ?", followingID).Scan(&follower.ID, &follower.Username, &follower.Avatar)
+		if err != nil {
+			return nil, err
+		}
+		followers = append(followers, follower)
+	}
+
+	return followers, nil
+}
+
+func (s *UserService) GetUserFollows(user models.Token) ([]models.User, error) {
+	var followingIDs []int64
+	rows, err := s.db.Query("SELECT following FROM followers WHERE user = ?", user.ID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	for rows.Next() {
+		var followingID int64
+		if err := rows.Scan(&followingID); err != nil {
+			return nil, err
+		}
+		followingIDs = append(followingIDs, followingID)
+	}
+
+	var follows []models.User
+	for _, followingID := range followingIDs {
+		var follow models.User
+		err := s.db.QueryRow("SELECT id, username, avatar FROM users WHERE id = ?", followingID).Scan(&follow.ID, &follow.Username, &follow.Avatar)
+		if err != nil {
+			return nil, err
+		}
+		follows = append(follows, follow)
+	}
+
+	return follows, nil
 }

@@ -24,7 +24,7 @@ func createSendToken(c *gin.Context, token models.Token) error {
 	return nil
 }
 
-func (h *Handler) Signup(c *gin.Context) {
+func (h *Handler) signup(c *gin.Context) {
 	var user models.User
 
 	if err := c.ShouldBindJSON(&user); err != nil {
@@ -65,7 +65,7 @@ func (h *Handler) Signup(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"success": true})
 }
 
-func (h *Handler) Login(c *gin.Context) {
+func (h *Handler) signin(c *gin.Context) {
 	var user models.User
 
 	if err := c.ShouldBindJSON(&user); err != nil {
@@ -73,7 +73,7 @@ func (h *Handler) Login(c *gin.Context) {
 		return
 	}
 
-	token, err := h.services.User.Login(user)
+	token, err := h.services.User.SignIn(user)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
@@ -87,7 +87,7 @@ func (h *Handler) Login(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"success": true})
 }
 
-func (h *Handler) DeleteUser(c *gin.Context) {
+func (h *Handler) deleteUser(c *gin.Context) {
 	user := utils.GetUser(c)
 
 	var reqBody map[string]interface{}
@@ -112,12 +112,12 @@ func (h *Handler) DeleteUser(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"success": true})
 }
 
-func (h *Handler) Logout(c *gin.Context) {
+func (h *Handler) logout(c *gin.Context) {
 	c.SetCookie("jwt", "", -1, "/", "localhost", true, true)
 	c.JSON(http.StatusOK, gin.H{"success": true})
 }
 
-func (h *Handler) GetUser(c *gin.Context) {
+func (h *Handler) getUser(c *gin.Context) {
 	username := c.Param("uname")
 
 	user, err := h.services.User.GetUserByUsername(username)
@@ -129,7 +129,7 @@ func (h *Handler) GetUser(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"success": true, "data": user})
 }
 
-func (h *Handler) SetAvatar(c *gin.Context) {
+func (h *Handler) setAvatar(c *gin.Context) {
 	user := utils.GetUser(c)
 
 	file, err := c.FormFile("avatar")
@@ -146,7 +146,7 @@ func (h *Handler) SetAvatar(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"success": true})
 }
 
-func (h *Handler) Follow(c *gin.Context) {
+func (h *Handler) follow(c *gin.Context) {
 	user := utils.GetUser(c)
 
 	followingParam := c.Param("id")
@@ -168,3 +168,28 @@ func (h *Handler) Follow(c *gin.Context) {
 
 	c.JSON(http.StatusOK, gin.H{"success": true})
 }
+
+func (h *Handler) getUserFollowers(c *gin.Context) {
+	user := utils.GetUser(c)
+
+	followers, err := h.services.User.GetUserFollowers(user)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"success": true, "data": followers})
+}
+
+func (h *Handler) getUserFollows(c *gin.Context) {
+	user := utils.GetUser(c)
+
+	followers, err := h.services.User.GetUserFollows(user)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"success": true, "data": followers})
+}
+

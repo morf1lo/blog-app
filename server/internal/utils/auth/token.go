@@ -10,7 +10,7 @@ import (
 func GenerateToken(id int64) (string, error) {
 	token := jwt.NewWithClaims(jwt.SigningMethodHS512, jwt.MapClaims{
 		"id": id,
-		"exp": time.Now().Add(time.Hour * 24).Unix(),
+		"exp": time.Now().Add(time.Hour * 24 * 7).Unix(),
 	})
 
 	jwt, err := token.SignedString([]byte(os.Getenv("SECRET")))
