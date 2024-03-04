@@ -12,8 +12,7 @@ func Connect() (*sql.DB, error) {
 	username := os.Getenv("DB_USERNAME")
 	password := os.Getenv("DB_PASSWORD")
 	host := os.Getenv("DB_HOST")
-	database := os.Getenv("DB_DATABASE")
-	fmt.Println(database)
+	database := os.Getenv("DATABASE")
 
 	db, err := sql.Open("mysql", fmt.Sprintf("%s:%s@tcp(%s)/%s", username, password, host, database))
 	if err != nil {

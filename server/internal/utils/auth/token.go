@@ -4,12 +4,13 @@ import (
 	"os"
 	"time"
 
+	"github.com/gin-gonic/gin"
 	"github.com/golang-jwt/jwt/v5"
 )
 
-func GenerateToken(id int64) (string, error) {
-	token := jwt.NewWithClaims(jwt.SigningMethodHS512, jwt.MapClaims{
-		"id": id,
+func generateToken(id int64) (string, error) {
+	token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
+		"uid": id,
 		"exp": time.Now().Add(time.Hour * 24 * 7).Unix(),
 	})
 
@@ -19,4 +20,14 @@ func GenerateToken(id int64) (string, error) {
 	}
 
 	return jwt, nil
+}
+
+func CreateSendToken(c *gin.Context, userID int64) error {
+	jwt, err := generateToken(userID)
+	if err != nil {
+		return err
+	}
+
+	c.SetCookie("jwt", jwt, int(time.Now().Add(time.Hour * 24).Unix()), "/", "localhost", true, true)
+	return nil
 }

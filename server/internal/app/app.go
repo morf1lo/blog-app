@@ -12,16 +12,17 @@ import (
 )
 
 func Run() {
-	config.Init()
+	if err := config.Init(); err != nil {
+		log.Fatal(err)
+	}
 
 	db, err := db.Connect()
 	if err != nil {
 		log.Fatal(err)
 	}
-	defer db.Close()
 
 	services := service.NewService(db)
-	handler := handler.NewHandler(services)
+	handlers := handler.NewHandler(services)
 
 	router := gin.New()
 
@@ -29,7 +30,7 @@ func Run() {
 
 	router.SetTrustedProxies(nil)
 
-	handler.SetupRoutes(router)
+	handlers.SetupRoutes(router)
 
 	router.Run(":8080")
 }

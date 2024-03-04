@@ -11,7 +11,7 @@ import (
 )
 
 func (h *Handler) addComment(c *gin.Context) {
-	user := utils.GetUser(c)
+	user := utils.GetUserFromRequest(c)
 
 	postIdParam := c.Param("post")
 	postId, err := strconv.Atoi(postIdParam)
@@ -32,7 +32,7 @@ func (h *Handler) addComment(c *gin.Context) {
 		return
 	}
 
-	comment.Author = user.ID
+	comment.AuthorID = user.ID
 
 	if err := comment.Validate(); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
@@ -55,7 +55,7 @@ func (h *Handler) getAllPostComments(c *gin.Context) {
 		return
 	}
 
-	comments, err := h.services.Comment.GetAllPostComments(int64(postId))
+	comments, err := h.services.Comment.FindAllPostComments(int64(postId))
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
@@ -70,7 +70,7 @@ func (h *Handler) getAllPostComments(c *gin.Context) {
 }
 
 func (h *Handler) deleteComment(c *gin.Context) {
-	user := utils.GetUser(c)
+	user := utils.GetUserFromRequest(c)
 
 	postIdParam := c.Param("post")
 	postId, err := strconv.Atoi(postIdParam)

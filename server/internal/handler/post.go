@@ -3,7 +3,6 @@ package handler
 import (
 	"net/http"
 	"strconv"
-	"strings"
 
 	"github.com/gin-gonic/gin"
 
@@ -11,36 +10,8 @@ import (
 	"github.com/morf1lo/blog-app/internal/utils"
 )
 
-type updateOptions struct {
-	Title		string	`json:"title"`
-	Text		string	`json:"text"`
-}
-
-func (u *updateOptions) filterUpdateOptions() (string, []interface{}) {
-	query := "UPDATE posts SET"
-	var values []interface{}
-
-	if strings.TrimSpace(u.Title) == "" && strings.TrimSpace(u.Text) == "" {
-		return "", nil
-	}
-
-	if strings.TrimSpace(u.Title) != "" {
-		query += " title = ?,"
-		values = append(values, strings.TrimSpace(u.Title))
-	}
-
-	if strings.TrimSpace(u.Text) != "" {
-		query += " text = ?,"
-		values = append(values, strings.TrimSpace(u.Text))
-	}
-
-	query = strings.TrimSuffix(query, ",")
-
-	return query, values
-}
-
 func (h *Handler) createPost(c *gin.Context) {
-	user := utils.GetUser(c)
+	user := utils.GetUserFromRequest(c)
 
 	var post models.Post
 
@@ -49,7 +20,7 @@ func (h *Handler) createPost(c *gin.Context) {
 		return
 	}
 
-	post.Author = user.ID
+	post.AuthorID = user.ID
 
 	if err := post.Validate(); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
@@ -64,6 +35,23 @@ func (h *Handler) createPost(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"success": true})
 }
 
+func (h *Handler) getPostById(c *gin.Context) {
+	postIDParam := c.Param("id")
+	postID, err := strconv.Atoi(postIDParam)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	post, err := h.services.Post.FindPostById(int64(postID))
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"success": true, "data": post})
+}
+
 func (h *Handler) getAuthorPosts(c *gin.Context) {
 	author := c.Param("id")
 
@@ -73,7 +61,7 @@ func (h *Handler) getAuthorPosts(c *gin.Context) {
 		return
 	}
 
-	posts, err := h.services.Post.GetAuthorPosts(int64(authorInt))
+	posts, err := h.services.Post.FindAuthorPosts(int64(authorInt))
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
@@ -88,32 +76,23 @@ func (h *Handler) getAuthorPosts(c *gin.Context) {
 }
 
 func (h *Handler) updatePost(c *gin.Context) {
-	user := utils.GetUser(c)
+	user := utils.GetUserFromRequest(c)
 
-	postIdParam := c.Param("id")
-	postId, err := strconv.Atoi(postIdParam)
+	postIDParam := c.Param("id")
+	postID, err := strconv.Atoi(postIDParam)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 
-	var updateOptions updateOptions
+	var updateOptions models.PostUpdateOptions
 
-	if err :=  c.ShouldBindJSON(&updateOptions); err != nil {
+	if err := c.ShouldBindJSON(&updateOptions); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 
-	updQuery, values := updateOptions.filterUpdateOptions()
-	if updQuery == "" {
-		c.JSON(http.StatusOK, gin.H{"success": true})
-		return
-	}
-
-	updQuery += " WHERE id = ? AND author = ?"
-	values = append(values, uint64(postId), user.ID)
-
-	if err := h.services.Post.UpdatePost(updQuery, values); err != nil {
+	if err := h.services.Post.UpdatePost(updateOptions, int64(postID), user.ID); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
@@ -122,7 +101,7 @@ func (h *Handler) updatePost(c *gin.Context) {
 }
 
 func (h *Handler) likePost(c *gin.Context) {
-	user := utils.GetUser(c)
+	user := utils.GetUserFromRequest(c)
 
 	postIdParam := c.Param("id")
 	postId, err := strconv.Atoi(postIdParam)
@@ -140,7 +119,7 @@ func (h *Handler) likePost(c *gin.Context) {
 }
 
 func (h *Handler) deletePost(c *gin.Context) {
-	user := utils.GetUser(c)
+	user := utils.GetUserFromRequest(c)
 
 	postIdParam := c.Param("id")
 	postId, err := strconv.Atoi(postIdParam)
@@ -158,9 +137,9 @@ func (h *Handler) deletePost(c *gin.Context) {
 }
 
 func (h *Handler) getUserLikes(c *gin.Context) {
-	user := utils.GetUser(c)
+	user := utils.GetUserFromRequest(c)
 
-	likes, err := h.services.Post.GetUserLikes(user)
+	likes, err := h.services.Post.FindUserLikes(user.ID)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return

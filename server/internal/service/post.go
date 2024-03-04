@@ -2,7 +2,6 @@ package service
 
 import (
 	"database/sql"
-	"encoding/json"
 
 	"github.com/morf1lo/blog-app/internal/models"
 )
@@ -16,44 +15,64 @@ func NewPostService(db *sql.DB) *PostService {
 }
 
 func (s *PostService) CreatePost(post models.Post) error {
-	_, err := s.db.Exec("INSERT INTO posts(author, title, text) VALUES(?, ?, ?)", post.Author, post.Title, post.Text)
+	_, err := s.db.Exec("INSERT INTO posts(author_id, title, text) VALUES(?, ?, ?)", post.AuthorID, post.Title, post.Text)
 	if err != nil {
 		return errInternalServer
 	}
 	return nil
 }
 
-func (s *PostService) GetAuthorPosts(authorID int64) ([]models.Post, error) {
-	rows, err := s.db.Query("SELECT * FROM posts WHERE author = ?", authorID)
+func (s *PostService) FindPostById(postID int64) (*models.Post, error) {
+	var post models.Post
+	err := s.db.QueryRow("SELECT id, author_id, title, text, likes FROM posts WHERE id = ?", postID).Scan(&post.ID, &post.AuthorID, &post.Title, &post.Text, &post.Likes)
 	if err != nil {
-		return []models.Post{}, err
+		return nil, err
+	}
+	err = s.db.QueryRow("SELECT username FROM users WHERE id = ?", post.AuthorID).Scan(&post.AuthorUsername)
+	if err != nil {
+		return nil, err
+	}
+
+	return &post, nil
+}
+
+func (s *PostService) FindAuthorPosts(authorID int64) (*[]models.Post, error) {
+	rows, err := s.db.Query("SELECT * FROM posts WHERE author_id = ?", authorID)
+	if err != nil {
+		return nil, err
 	}
 	defer rows.Close()
 
 	var posts []models.Post
 	for rows.Next() {
 		var post models.Post
-		var authorJSON string
-		if err := rows.Scan(&post.ID, &authorJSON, &post.Title, &post.Text, &post.Likes); err != nil {
-			return []models.Post{}, errInternalServer
+		if err := rows.Scan(&post.ID, &post.AuthorID, &post.Title, &post.Text, &post.Likes); err != nil {
+			return nil, errInternalServer
 		}
-
-		if err := json.Unmarshal([]byte(authorJSON), &post.Author); err != nil {
-			return []models.Post{}, errInternalServer
+		if err := s.db.QueryRow("SELECT username FROM users WHERE id = ?", authorID).Scan(&post.AuthorUsername); err != nil {
+			return nil, err
 		}
 
 		posts = append(posts, post)
 	}
 
 	if err := rows.Err(); err != nil {
-		return []models.Post{}, err
+		return nil, err
 	}
 
-	return posts, nil
+	return &posts, nil
 }
 
-func (s *PostService) UpdatePost(updateQuery string, values []interface{}) error {
-	_, err := s.db.Exec(updateQuery, values...)
+func (s *PostService) UpdatePost(updateOpts models.PostUpdateOptions, postID int64, userID int64) error {
+	updQuery, values := updateOpts.FilterUpdateOptions()
+	if updQuery == "" {
+		return nil
+	}
+
+	updQuery += " WHERE id = ? AND author_id = ?"
+	values = append(values, postID, userID)
+
+	_, err := s.db.Exec(updQuery, values...)
 	if err != nil {
 		return err
 	}
@@ -73,7 +92,7 @@ func (s *PostService) LikePost(postID int64, userID int64) error {
 
 	// Checking if user has already likes a post
 	var alreadyLiked bool
-	err = s.db.QueryRow("SELECT EXISTS(SELECT 1 FROM likes WHERE user = ? AND post = ?)", userID, postID).Scan(&alreadyLiked)
+	err = s.db.QueryRow("SELECT EXISTS(SELECT 1 FROM likes WHERE user_id = ? AND post_id = ?)", userID, postID).Scan(&alreadyLiked)
 	if err != nil {
 		return err
 	}
@@ -84,7 +103,7 @@ func (s *PostService) LikePost(postID int64, userID int64) error {
 			return errInternalServer
 		}
 
-		_, err = s.db.Exec("DELETE FROM likes WHERE user = ? AND post = ?", userID, postID)
+		_, err = s.db.Exec("DELETE FROM likes WHERE user_id = ? AND post_id = ?", userID, postID)
 		if err != nil {
 			return errInternalServer
 		}
@@ -94,7 +113,7 @@ func (s *PostService) LikePost(postID int64, userID int64) error {
 			return errInternalServer
 		}
 
-		_, err = s.db.Exec("INSERT INTO likes(user, post) VALUES(?, ?)", userID, postID)
+		_, err = s.db.Exec("INSERT INTO likes(user_id, post_id) VALUES(?, ?)", userID, postID)
 		if err != nil {
 			return errInternalServer
 		}
@@ -118,7 +137,7 @@ func deletePostDataFromDB(db *sql.DB, postID int64, userID int64) error {
 	defer tx.Rollback()
 
 	queries := [2]string{
-		"DELETE FROM posts WHERE id = ? AND author = ?",
+		"DELETE FROM posts WHERE id = ? AND author_id = ?",
 		"DELETE FROM comments WHERE JSON_EXTRACT(post, '$.id') = ? AND JSON_EXTRACT(post, '$.author') = ?",
 	}
 
@@ -136,7 +155,7 @@ func deletePostDataFromDB(db *sql.DB, postID int64, userID int64) error {
 		}
 	}
 
-	_, err = tx.Exec("DELETE FROM likes WHERE post = ?", postID)
+	_, err = tx.Exec("DELETE FROM likes WHERE post_id = ?", postID)
 	if err != nil {
 		return err
 	}
@@ -144,9 +163,9 @@ func deletePostDataFromDB(db *sql.DB, postID int64, userID int64) error {
 	return tx.Commit()
 }
 
-func (s *PostService) GetUserLikes(user models.Token) ([]models.Post, error) {
+func (s *PostService) FindUserLikes(userID int64) (*[]models.Post, error) {
 	var postIDs []int64
-	rows, err := s.db.Query("SELECT post FROM likes WHERE user = ?", user.ID)
+	rows, err := s.db.Query("SELECT post_id FROM likes WHERE user_id = ?", userID)
 	if err != nil {
 		return nil, err
 	}
@@ -163,12 +182,13 @@ func (s *PostService) GetUserLikes(user models.Token) ([]models.Post, error) {
 	var posts []models.Post
 	for _, postID := range postIDs {
 		var post models.Post
-		err := s.db.QueryRow("SELECT id, author, title, likes FROM posts WHERE id = ?", postID).Scan(&post.ID, &post.Author, &post.Title, &post.Likes)
+		err := s.db.QueryRow("SELECT id, author_id, title, text, likes FROM posts WHERE id = ?", postID).Scan(&post.ID, &post.AuthorID, &post.Title, &post.Text, &post.Likes)
 		if err != nil {
 			return nil, err
 		}
+
 		posts = append(posts, post)
 	}
 
-	return posts, nil
+	return &posts, nil
 }

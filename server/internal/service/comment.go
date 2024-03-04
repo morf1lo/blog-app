@@ -26,22 +26,22 @@ func (s *CommentService) AddComment(comment models.Comment, userID int64, postID
 		return errPostNotFound
 	}
 
-	var postAuthorId int64
-	err = s.db.QueryRow("SELECT author FROM posts WHERE id = ?", postID).Scan(&postAuthorId)
+	var postAuthorID int64
+	err = s.db.QueryRow("SELECT author_id FROM posts WHERE id = ?", postID).Scan(&postAuthorID)
 	if err != nil {
 		return err
 	}
 
 	postData := models.CommentPost{
 		ID: postID,
-		Author: postAuthorId,
+		AuthorID: postAuthorID,
 	}
 	postDataJSON, err := json.Marshal(postData)
 	if err != nil {
 		return err
 	}
 
-	_, err = s.db.Exec("INSERT INTO comments (post, author, text) VALUES(?, ?, ?)", postDataJSON, userID, comment.Text)
+	_, err = s.db.Exec("INSERT INTO comments (post, author_id, text) VALUES(?, ?, ?)", postDataJSON, userID, comment.Text)
 	if err != nil {
 		return err
 	}
@@ -49,10 +49,10 @@ func (s *CommentService) AddComment(comment models.Comment, userID int64, postID
 	return nil
 }
 
-func (s *CommentService) GetAllPostComments(postID int64) ([]models.Comment, error) {
+func (s *CommentService) FindAllPostComments(postID int64) (*[]models.Comment, error) {
 	rows, err := s.db.Query("SELECT * FROM comments WHERE JSON_EXTRACT(post, '$.id') = ?", postID)
 	if err != nil {
-		return []models.Comment{}, err
+		return nil, err
 	}
 	defer rows.Close()
 
@@ -60,33 +60,33 @@ func (s *CommentService) GetAllPostComments(postID int64) ([]models.Comment, err
 	for rows.Next() { 
 		var comment models.Comment
 		var postDataJSON string
-		if err := rows.Scan(&comment.ID, &postDataJSON, &comment.Author, &comment.Text); err != nil {
-			return []models.Comment{}, err
+		if err := rows.Scan(&comment.ID, &postDataJSON, &comment.AuthorID, &comment.Text); err != nil {
+			return nil, err
 		}
 
 		if err := json.Unmarshal([]byte(postDataJSON), &comment.Post); err != nil {
-			return []models.Comment{}, errInternalServer
+			return nil, errInternalServer
 		}
 
 		comments = append(comments, comment)
 	}
 
 	if err := rows.Err(); err != nil {
-		return []models.Comment{}, err
+		return nil, err
 	}
 
-	return comments, nil
+	return &comments, nil
 }
 
 func (s *CommentService) DeleteComment(commentID int64, userID int64, postID int64) error {
 	var postAuthorId int64
-	err := s.db.QueryRow("SELECT author FROM posts WHERE id = ?", postID).Scan(&postAuthorId)
+	err := s.db.QueryRow("SELECT author_id FROM posts WHERE id = ?", postID).Scan(&postAuthorId)
 	if err != nil {
 		return err
 	}
 
 	var commentAuthorId int64
-	err = s.db.QueryRow("SELECT author FROM comments WHERE id = ?", commentID).Scan(&commentAuthorId)
+	err = s.db.QueryRow("SELECT author_id FROM comments WHERE id = ?", commentID).Scan(&commentAuthorId)
 	if err != nil {
 		return err
 	}

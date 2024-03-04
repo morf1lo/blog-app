@@ -5,36 +5,43 @@ import (
 	"mime/multipart"
 
 	"github.com/gin-gonic/gin"
+
 	"github.com/morf1lo/blog-app/internal/models"
 )
 
+type Authorization interface {
+	CreateUser(user models.User) (int64, error)
+	SignIn(user models.User) (int64, error)
+}
+
 type User interface {
-	CreateUser(user models.User) (models.Token, error)
-	SignIn(user models.User) (models.Token, error)
-	DeleteUser(user models.Token, confirmPassword string) error
-	GetUserByUsername(username string) (interface{}, error)
-	SetAvatar(c *gin.Context, file *multipart.FileHeader, user *models.Token) error
-	Follow(user models.Token, following uint64) error
-	GetUserFollowers(user models.Token) ([]models.User, error)
-	GetUserFollows(user models.Token) ([]models.User, error)
+	DeleteUser(userID int64, confirmPassword string) error
+	FindUserById(userID int64) (*models.User, error)
+	FindUserByUsername(username string) (*models.User, error)
+	SetAvatar(c *gin.Context, file *multipart.FileHeader, userID int64) error
+	Follow(userID int64, followingID int64) error
+	FindUserFollowers(userID int64) (*[]models.User, error)
+	FindUserFollows(userID int64) (*[]models.User, error)
 }
 
 type Post interface {
 	CreatePost(post models.Post) error
-	GetAuthorPosts(authorID int64) ([]models.Post, error)
-	UpdatePost(updateQuery string, values []interface{}) error
+	FindPostById(postID int64) (*models.Post, error)
+	FindAuthorPosts(authorID int64) (*[]models.Post, error)
+	UpdatePost(updateOpts models.PostUpdateOptions, postID int64, userID int64) error
 	LikePost(postID int64, userID int64) error
 	DeletePost(postID int64, userID int64) error
-	GetUserLikes(user models.Token) ([]models.Post, error)
+	FindUserLikes(userID int64) (*[]models.Post, error)
 }
 
 type Comment interface {
 	AddComment(comment models.Comment, userID int64, postID int64) error
-	GetAllPostComments(postID int64) ([]models.Comment, error)
+	FindAllPostComments(postID int64) (*[]models.Comment, error)
 	DeleteComment(commentID int64, userID int64, postID int64) error
 }
 
 type Service struct {
+	Authorization
 	User
 	Post
 	Comment
@@ -42,6 +49,7 @@ type Service struct {
 
 func NewService(db *sql.DB) *Service {
 	return &Service{
+		Authorization: NewAuthService(db),
 		User: NewUserService(db),
 		Post: NewPostService(db),
 		Comment: NewCommentService(db),
