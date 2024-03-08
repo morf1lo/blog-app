@@ -42,6 +42,7 @@ func (h *Handler) SetupRoutes(router *gin.Engine) {
 		post.POST("/like/:id", h.authMiddleware, h.likePost)
 		post.GET("/my/likes", h.authMiddleware, h.getUserLikes)
 		post.DELETE("/:id", h.authMiddleware, h.deletePost)
+		post.GET("/search", h.authMiddleware, h.searchPosts)
 	}
 
 	comment := router.Group("/api/comments")

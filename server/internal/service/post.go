@@ -192,3 +192,26 @@ func (s *PostService) FindUserLikes(userID int64) (*[]models.Post, error) {
 
 	return &posts, nil
 }
+
+func (s *PostService) SearchPosts(query string) (*[]models.Post, error) {
+	rows, err := s.db.Query("SELECT id, title FROM posts WHERE title LIKE CONCAT(?, '%')", query)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var posts []models.Post
+	for rows.Next() {
+		var post models.Post
+		if err := rows.Scan(&post.ID, &post.Title); err != nil {
+			return nil, err
+		}
+		posts = append(posts, post)
+	}
+
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+
+	return &posts, nil
+}

@@ -32,6 +32,7 @@ type Post interface {
 	LikePost(postID int64, userID int64) error
 	DeletePost(postID int64, userID int64) error
 	FindUserLikes(userID int64) (*[]models.Post, error)
+	SearchPosts(query string) (*[]models.Post, error)
 }
 
 type Comment interface {

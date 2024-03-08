@@ -147,3 +147,15 @@ func (h *Handler) getUserLikes(c *gin.Context) {
 
 	c.JSON(http.StatusOK, gin.H{"success": true, "data": likes})
 }
+
+func (h *Handler) searchPosts(c *gin.Context) {
+	q := c.Query("q")
+
+	posts, err := h.services.Post.SearchPosts(q)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"success": true, "data": posts})
+}
