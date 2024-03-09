@@ -194,7 +194,7 @@ func (s *PostService) FindUserLikes(userID int64) (*[]models.Post, error) {
 }
 
 func (s *PostService) SearchPosts(query string) (*[]models.Post, error) {
-	rows, err := s.db.Query("SELECT id, title FROM posts WHERE title LIKE CONCAT(?, '%')", query)
+	rows, err := s.db.Query("SELECT id, title FROM posts WHERE title LIKE ? LIMIT 15", "%" + query + "%")
 	if err != nil {
 		return nil, err
 	}
