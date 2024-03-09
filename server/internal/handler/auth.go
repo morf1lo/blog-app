@@ -5,6 +5,7 @@ import (
 	"strings"
 
 	"github.com/gin-gonic/gin"
+	
 	"github.com/morf1lo/blog-app/internal/models"
 	"github.com/morf1lo/blog-app/internal/utils/auth"
 )
@@ -43,6 +44,17 @@ func (h *Handler) signUp(c *gin.Context) {
 	}
 
 	if err := auth.CreateSendToken(c, userID); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"success": true})
+}
+
+func (h *Handler) activate(c *gin.Context) {
+	activationLink := c.Param("link")
+
+	if err := h.services.Authorization.Activate(activationLink); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}

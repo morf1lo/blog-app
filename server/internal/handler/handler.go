@@ -18,6 +18,7 @@ func (h *Handler) SetupRoutes(router *gin.Engine) {
 	auth := router.Group("/api/auth")
 	{
 		auth.POST("/signup", h.signUp)
+		auth.GET("/activate/:link", h.activate)
 		auth.POST("/signin", h.signIn)
 	}
 

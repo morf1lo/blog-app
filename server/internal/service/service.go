@@ -11,6 +11,7 @@ import (
 
 type Authorization interface {
 	CreateUser(user models.User) (int64, error)
+	Activate(activationLink string) error
 	SignIn(user models.User) (int64, error)
 }
 
@@ -41,6 +42,10 @@ type Comment interface {
 	DeleteComment(commentID int64, userID int64, postID int64) error
 }
 
+type Mail interface {
+	sendActivationLink(to []string, link string) error
+}
+
 type Service struct {
 	Authorization
 	User
@@ -50,7 +55,7 @@ type Service struct {
 
 func NewService(db *sql.DB) *Service {
 	return &Service{
-		Authorization: NewAuthService(db),
+		Authorization: NewAuthService(db, NewMailService(db)),
 		User: NewUserService(db),
 		Post: NewPostService(db),
 		Comment: NewCommentService(db),
