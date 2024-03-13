@@ -50,7 +50,7 @@ func (s *AuthService) Activate(activationLink string) error {
 		return errUserNotFound
 	}
 
-	_, err := s.db.Exec("UPDATE users SET activated = true WHERE activation_link = ?", activationLink)
+	_, err := s.db.Exec("UPDATE users SET activated = true, activation_link = null WHERE activation_link = ?", activationLink)
 	if err != nil {
 		return err
 	}
