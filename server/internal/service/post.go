@@ -194,7 +194,7 @@ func (s *PostService) FindUserLikes(userID int64) (*[]models.Post, error) {
 }
 
 func (s *PostService) SearchPosts(query string) (*[]models.Post, error) {
-	rows, err := s.db.Query("SELECT id, title FROM posts WHERE title LIKE ? LIMIT 15", "%" + query + "%")
+	rows, err := s.db.Query("SELECT id, title, likes FROM posts WHERE title LIKE ? ORDER BY likes DESC LIMIT 15", "%" + query + "%")
 	if err != nil {
 		return nil, err
 	}
@@ -203,7 +203,7 @@ func (s *PostService) SearchPosts(query string) (*[]models.Post, error) {
 	var posts []models.Post
 	for rows.Next() {
 		var post models.Post
-		if err := rows.Scan(&post.ID, &post.Title); err != nil {
+		if err := rows.Scan(&post.ID, &post.Title, &post.Likes); err != nil {
 			return nil, err
 		}
 		posts = append(posts, post)
