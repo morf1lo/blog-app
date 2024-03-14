@@ -126,7 +126,7 @@ func (s *UserService) SetAvatar(c *gin.Context, file *multipart.FileHeader, user
 		return err
 	}
 
-	avatar := "http://localhost:8080/public/avatars/" + fileName
+	avatar := os.Getenv("SERVER_URL") + "/public/avatars/" + fileName
 	_, err = s.db.Exec("UPDATE users SET avatar = ? WHERE id = ?", avatar, userID)
 	if err != nil {
 		return err

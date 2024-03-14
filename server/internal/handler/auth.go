@@ -48,7 +48,7 @@ func (h *Handler) signUp(c *gin.Context) {
 		return
 	}
 
-	if err := h.services.Mail.SendActivationLink([]string{user.Email}, "http://localhost:8080/api/auth/activate/" + activationLink.String()); err != nil {
+	if err := h.services.Mail.SendActivationLink([]string{user.Email}, os.Getenv("SERVER_URL") + "/api/auth/activate/" + activationLink.String()); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
