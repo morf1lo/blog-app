@@ -3,16 +3,24 @@ package service
 import (
 	"database/sql"
 	"mime/multipart"
+	"time"
 
 	"github.com/gin-gonic/gin"
 
 	"github.com/morf1lo/blog-app/internal/models"
 )
 
+type Mail interface {
+	SendActivationLink(to []string, link string) error
+	SendResetPasswordLink(to []string, link string) error
+}
+
 type Authorization interface {
-	CreateUser(user models.User) (int64, error)
+	CreateUser(user models.User, activationLink string) (int64, error)
 	Activate(activationLink string) error
 	SignIn(user models.User) (int64, error)
+	SaveResetToken(email string, token string, tokenExpiry time.Time) error
+	ResetPassword(token string, newPassword string) error
 }
 
 type User interface {
@@ -42,11 +50,8 @@ type Comment interface {
 	DeleteComment(commentID int64, userID int64, postID int64) error
 }
 
-type Mail interface {
-	sendActivationLink(to []string, link string) error
-}
-
 type Service struct {
+	Mail
 	Authorization
 	User
 	Post
@@ -55,7 +60,8 @@ type Service struct {
 
 func NewService(db *sql.DB) *Service {
 	return &Service{
-		Authorization: NewAuthService(db, NewMailService(db)),
+		Mail: NewMailService(db),
+		Authorization: NewAuthService(db),
 		User: NewUserService(db),
 		Post: NewPostService(db),
 		Comment: NewCommentService(db),

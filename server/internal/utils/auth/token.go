@@ -1,7 +1,10 @@
 package auth
 
 import (
+	"crypto/rand"
+	"encoding/base64"
 	"os"
+	"strings"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -30,4 +33,13 @@ func CreateSendToken(c *gin.Context, userID int64) error {
 
 	c.SetCookie("jwt", jwt, int(time.Now().Add(time.Hour * 24).Unix()), "/", "localhost", true, true)
 	return nil
+}
+
+func GenerateResetToken() (string, error) {
+	tokenBytes := make([]byte, 32)
+	_, err := rand.Read(tokenBytes)
+	if err != nil {
+		return "", err
+	}
+	return strings.ReplaceAll(base64.URLEncoding.EncodeToString(tokenBytes), "%", ""), nil
 }

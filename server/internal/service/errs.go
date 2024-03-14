@@ -9,4 +9,5 @@ var (
 	errUserNotFound				error = errors.New("user not found")
 	errPostNotFound				error = errors.New("post not found")
 	errNoAccess						error = errors.New("you have no access")
+	errTokenHasExpired    error = errors.New("token has expired")
 )

@@ -20,6 +20,8 @@ func (h *Handler) SetupRoutes(router *gin.Engine) {
 		auth.POST("/signup", h.signUp)
 		auth.GET("/activate/:link", h.activate)
 		auth.POST("/signin", h.signIn)
+		auth.POST("/reset", h.requestToResetPassword)
+		auth.POST("/reset-pass/:token", h.resetPassword)
 	}
 
 	user := router.Group("/api/users")
